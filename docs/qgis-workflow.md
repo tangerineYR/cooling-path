@@ -2,8 +2,8 @@
 
 ## 근거와 범위
 
-사용자가 제공한 `CoolingPath_shadow.ipynb`와 `(Sandy) QGIS_project.qgz`를
-직접 읽어 확인했습니다. QGZ의 `0112_project.qgs`에는 24개 레이어가 있으며
+기존 프로젝트 산출물인 `CoolingPath_shadow.ipynb`와
+`QGIS_project.qgz`를 기준으로 전처리 과정을 검증했습니다. QGZ의 `0112_project.qgs`에는 24개 레이어가 있으며
 프로젝트 CRS는 **EPSG:5186**입니다. 이는 분석에 사용한 주요 건물·도로·그림자
 레이어의 **EPSG:5179**와 구분해야 합니다. 원천 자료에는 EPSG:4326·5186,
 OSM 배경지도에는 EPSG:3857이 사용됩니다.
@@ -71,7 +71,7 @@ CRS가 없거나 형상이 유효하지 않으면 임의 추정·자동 보정�
 - `Roads_Buffered` CSV 레이어는 CRS 선언이 비어 있습니다.
 
 원본 QGZ는 그대로 게시하지 않았습니다. 대신 저장소 입력을 기반으로 중복·외부
-레이어를 제거한 [포트폴리오용 정리본](qgis/usage.md)을 추가했습니다. 네 레이어의
+레이어를 제거한 [공개용 정리본](qgis/usage.md)을 추가했습니다. 네 레이어의
 참조 경로를 상대경로로 만들고 프로젝트 CRS를 분석 레이어와 같은 EPSG:5179로
 정리했습니다. 원본 프로젝트 전체의 복원본은 아닙니다. 실제 QGIS에서 재개방한
 프로젝트, QGIS가 렌더링한 이미지와 [레이어별 처리 내역](qgis/layer-inventory.md)을
