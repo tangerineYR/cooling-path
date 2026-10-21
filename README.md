@@ -202,7 +202,14 @@ Road LineString
    └─ Shadow Area Intersection
 ```
 
-보존된 QGIS project에는 원천 건물·행정경계·보행 네트워크와 함께 가공된 Building/Road/Shadow layer 및 `area`, `shade_area`, `shade_rat` 등의 분석 필드가 남아 있습니다.
+프로젝트 당시 검증에 사용한 원본 QGIS project에는 원천 건물·행정경계·보행 네트워크와
+가공된 Building/Road/Shadow layer 및 분석 필드가 함께 존재했습니다.
+
+다만 원본 QGIS project는 외부 local path와 공개 범위를 확정하기 어려운 중간 산출물을
+포함하고 있어 Repository에 그대로 게시하지 않았습니다.
+
+현재 Portfolio Repository에서는 검증 가능한 네 개의 핵심 레이어만 남긴
+portable QGIS project를 별도로 제공합니다.
 
 #### Impact
 
@@ -680,6 +687,9 @@ cooling-path/
 │   ├── test_preprocessing.py
 │   └── test_qgis_project.py
 │
+├── .devcontainer/
+│   └── devcontainer.json
+│
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
@@ -727,11 +737,32 @@ source .venv/bin/activate
 python -m pip install -e .
 ```
 
-`.env` 또는 `.streamlit/secrets.toml`에 Kakao REST API Key를 설정합니다.
+Kakao REST API Key는 **환경변수** 또는 Streamlit Secrets로 설정합니다.
+
+#### Option A. Environment Variable
+
+macOS / Linux:
+
+```bash
+export KAKAO_API_KEY="YOUR_KAKAO_REST_API_KEY"
+```
+
+Windows PowerShell:
+
+```powershell
+$env:KAKAO_API_KEY="YOUR_KAKAO_REST_API_KEY"
+```
+
+#### Option B. Streamlit Secrets
+
+`.streamlit/secrets.toml`:
 
 ```toml
 KAKAO_API_KEY = "YOUR_KAKAO_REST_API_KEY"
 ```
+
+> `.env` 파일은 자동으로 로드하지 않습니다.
+> `.env.example`은 필요한 환경변수 이름을 안내하기 위한 template입니다.
 
 ### 4. Run
 
