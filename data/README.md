@@ -12,6 +12,12 @@
 
 SHP·SHX·DBF·PRJ는 함께 유지합니다. 앱의 기본 데이터 경로는 저장소 기준으로 결정되며 `COOLINGPATH_DATA_DIR` 환경변수로 가공 데이터 경로를 변경할 수 있습니다.
 
-그림자 형상 저장을 위한 ERD는 `docs/diagrams/erd.mmd`에 있습니다. 기존 `hourly_shadows_20250708.gpkg`는 개행만 있는 2바이트 파일이어서 제외했습니다. 실제 그림자 Polygon 원본과 전처리 재생성 스크립트는 이 저장소에 포함되어 있지 않습니다.
+그림자 형상 저장을 위한 ERD는 `docs/diagrams/erd.mmd`에 있습니다.
+
+실제 프로젝트 당시 생성된 전체 Shadow Polygon 원본은 저장소에 포함하지 않습니다.
+
+대신 `scripts/preprocessing/`의 재현 스크립트를 이용해
+`processed_buildings.shp`, Solar Scenario, Road Buffer를 기준으로
+시간대별 Shadow Geometry와 Link-level Shadow Statistics를 다시 생성할 수 있습니다.
 
 데이터는 기존 저장소에 공개된 파일을 재배치했습니다. 원천 데이터의 출처·이용 조건은 코드와 별도로 적용됩니다.
