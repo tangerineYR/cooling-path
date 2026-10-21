@@ -924,6 +924,25 @@ Cooling Path는 **시뮬레이션 기반 PoC**이며 실제 내비게이션 서�
 
 ---
 
+## 📄 License & Usage
+
+This repository is published for **portfolio and technical review purposes**.
+
+The project was originally developed during an internship at **Dtonic** and
+includes work created in that context. Therefore, this repository is **not
+currently distributed under an open-source license**.
+
+Unless otherwise explicitly stated, no permission is granted by this
+repository to reproduce, modify, redistribute, or commercially use the source
+code, project assets, or documentation.
+
+Third-party datasets, APIs, libraries, and other external resources remain
+subject to their respective licenses and terms of use.
+
+For questions regarding reuse or licensing, please contact the repository owner.
+
+---
+
 <div align="center">
 
 ### Cooling Path 🐈‍⬛
