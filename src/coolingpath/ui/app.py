@@ -143,6 +143,29 @@ def main():
             "기온 데이터 모드", ["실시간", "폭염 (demo)", "폭염 + 강수 (demo)"], index=0
         )
         st.session_state.weather_mode = weather_mode
+    
+    current_route_inputs = {
+        "start_query": start_query.strip(),
+        "end_query": end_query.strip(),
+        "time_slot": time_slot,
+        "weather_mode": weather_mode,
+        "personal_mode": use_personal_mode,
+        "personal_pref": (
+            dict(st.session_state.personal_pref)
+            if use_personal_mode else None
+        ),
+    }
+
+    if (
+        not submit
+        and st.session_state.get("route_ready")
+        and st.session_state.get("calculated_route_inputs") != current_route_inputs
+    ):
+        st.session_state.route_ready = False
+        st.session_state.route_result = None
+        st.session_state.personal_route_ready = False
+        st.info("탐색 조건이 변경되었습니다. 경로 탐색 버튼을 다시 눌러 주세요.")
+
     roads_gdf = load_roads()
     shadow_df = load_shadow_data()
     shade_shelters_df = load_shade_shelters()
@@ -165,6 +188,15 @@ def main():
         end_lat, end_lon, end_name = end
         u_node = get_nearest_node(start_lat, start_lon, node_tree, node_ids, node_xy)
         v_node = get_nearest_node(end_lat, end_lon, node_tree, node_ids, node_xy)
+
+        if u_node == v_node:
+            st.session_state.is_loading = False
+            st.error(
+                "출발지와 도착지가 동일한 도로 지점으로 연결되었습니다. "
+                "서로 다른 위치를 선택해 주세요."
+            )
+            st.stop()
+
         new_input = {
             "start": {
                 "name": start_name,
@@ -236,6 +268,7 @@ def main():
         heatwave = is_heatwave(base_temp)
         st.session_state.heatwave = {"active": heatwave, "temp": base_temp}
         st.session_state.route_ready = True
+        st.session_state.calculated_route_inputs = current_route_inputs
         st.session_state.personal_route_ready = st.session_state.use_personal_mode
         st.session_state.is_loading = False
     if st.session_state.get("is_loading"):

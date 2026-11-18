@@ -200,11 +200,19 @@ def calculate_route_grade(kpi, mode="cooling", pref=None):
             detour=0.35 * (1 - cw),
             time=0.35 * (1 - cw),
         )
-    total = (
+    
+    weighted_sum = (
         s_cool * w["cool"]
         + s_shadow * w["shadow"]
         + s_detour * w["detour"]
         + s_time * w["time"]
     )
-    grade = "A" if total >= 85 else "B" if total >= 70 else "C" if total >= 55 else "D"
+    total = weighted_sum / sum(w.values())
+
+    grade = (
+        "A" if total >= 85
+        else "B" if total >= 70
+        else "C" if total >= 55
+        else "D"
+    )
     return {"score": round(total, 1), "grade": grade}

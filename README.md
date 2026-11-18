@@ -1,8 +1,11 @@
 <div align="center">
 
+<img src="assets/images/cat_happy.png" width="210" alt="Cooling Path의 고양이 마스코트 까망이" />
+
 # Cooling Path 🐈‍⬛
 
 ### Shade-aware Pedestrian Routing & Urban Heat Analytics
+
 
 **보행 네트워크의 최단거리만을 따르지 않고,  
 시간대별 건물 그림자와 보행 환경을 Graph Cost로 변환해  
@@ -90,12 +93,16 @@ Shortest / Cooling / Main-road / Personalized Route
 | **Application** | Streamlit · Folium · Altair |
 | **External Data** | Kakao Local API · Open-Meteo |
 
-> **Portfolio Refactoring**
+
+> **Project Scope & Provenance**
 >
-> 현장실습 당시의 Streamlit PoC를 기반으로 이후 application을
-> `routing / metrics / services / data / ui` 단위로 모듈화하고,
-> 재현 가능한 Shadow preprocessing script, pytest regression test,
-> GitHub Actions CI, Docker/Dev Container 및 portable QGIS project를 추가했습니다.
+> 이 프로젝트는 디토닉 BX사업본부에서 진행한 1인 현장실습의 **데이터 기반 폭염 대비 그늘 경로 탐색 PoC**를 기반으로 합니다.
+>
+> 현장실습 당시에는 QGIS 기반 공간 전처리, 건물 그림자 시뮬레이션, 보행 네트워크 경로 탐색 및 Streamlit 대시보드를 개발했습니다.
+>
+> 이후 기존 애플리케이션을 `routing`, `metrics`, `services`, `data`, `ui` 모듈로 분리하고, 그림자 전처리 실행 스크립트, 자동화 테스트, GitHub Actions, Docker 및 공개용 QGIS 프로젝트를 보강했습니다.
+>
+> 본 저장소는 당시 PoC와 후속 개선 결과를 함께 기록하며, 현장실습 당시의 실험 결과와 이후 변경된 구현을 구분합니다.
 
 ---
 
@@ -575,7 +582,7 @@ Average Shadow Ratio × 5℃
 
 ---
 
-### 11. Internship PoC를 Reproducible Portfolio Project로 리팩토링
+### 11. 현장실습 PoC의 모듈화 및 재현·검증 체계 구축
 
 현장실습 이후 기존 Streamlit 중심 PoC를 다음 domain으로 분리했습니다.
 
@@ -613,27 +620,47 @@ CI에서는 Python **3.11 / 3.12** 환경에서 application뿐 아니라 routing
 
 ---
 
+## 🔧 Engineering Decisions & Validation
+
+| 검토 항목 | 설계 결정 | 검증 방법 |
+|---|---|---|
+| 공간 좌표계 일관성 | 거리·면적 계산에 사용하는 건물·도로 레이어를 EPSG:5179 기준으로 통일 | CRS 검증 및 QGIS 프로젝트 테스트 |
+| 그림자 형상 보존 | Convex Hull 대신 건물 형상을 단계적으로 이동·합집합하는 Shadow Ghosting 적용 | 그림자 방향·범위·형상 테스트 |
+| 그림자 중복 면적 방지 | 건물별 그림자의 교차 영역을 `union_all()`로 통합해 중복 면적 제거 | `union`·`legacy-sum` 비교 테스트 |
+| 경로 탐색 기준 | 직선거리가 아닌 보행 네트워크의 실제 Edge Length를 최단거리 기준으로 사용 | 최단거리 및 우회 제한 테스트 |
+| 평행 도로 처리 | 동일 노드 쌍에서는 최단 링크를 선택하고 제외된 링크 정보를 기록 | 입력 순서 독립성 및 대표 링크 검증 |
+| 경로별 그늘 평가 | 링크별 단순 평균 대신 이동 거리로 가중한 평균 그늘 비율 계산 | Length-weighted Shadow KPI 테스트 |
+| 외부 기상 데이터 검증 | HTTP 응답, 시간대, 배열 길이, 결측·비유한 값 및 유효 범위 검사 | HTTP 오류 및 Weather Schema 테스트 |
+| 시뮬레이션 지표 구분 | 실제 체감온도 대신 `기온 − 평균 그늘 비율 × 5℃`를 그늘 보정 온도로 명시 | 계산식 및 출력 필드 검증 |
+| 공간 데이터 재현성 | 그림자 생성·도로 교차·링크별 집계를 독립 실행 스크립트로 구성 | 전처리 결과 저장·복원 및 중복 면적 테스트 |
+| QGIS 프로젝트 이식성 | 외부 절대 경로를 제거하고 저장소 내부 레이어만 참조하도록 구성 | QGZ 경로·CRS·GPKG 데이터 검증 |
+| 자동화 검증 | Python 3.11·3.12에서 Ruff와 pytest 실행 | GitHub Actions |
+
+현재 자동화 테스트는 알고리즘의 주요 동작, 데이터 정합성 및 실행 환경을 확인합니다. 실제 도로 현장에서의 그림자 정확도나 사용자 체감 쾌적성 개선을 검증한 결과는 아닙니다.
+
+---
+
 ## 🛠️ Tech Stack
 
-| Category | Technology | Usage |
-| --- | --- | --- |
-| **GIS** | QGIS | Spatial preprocessing, inspection, layer management |
-| **Geospatial** | GeoPandas | CRS conversion, spatial data processing |
-| **Geometry** | Shapely | Translation, union, spatial intersection |
-| **Solar Modeling** | Pysolar | Solar altitude / azimuth scenario generation |
-| **CRS** | PyProj | WGS84 ↔ projected coordinate conversion |
-| **Graph** | NetworkX | Pedestrian shortest path & weighted routing |
-| **Spatial Index** | SciPy KDTree | Search coordinate → graph node matching |
-| **Data** | Pandas | Link-hour shadow statistics |
-| **Weather** | Open-Meteo | Hourly weather context |
-| **Place Search** | Kakao Local API | Origin / destination search |
-| **Application** | Streamlit | Interactive routing PoC |
-| **Map** | Folium | Route and spatial visualization |
-| **Chart** | Altair | Hourly weather visualization |
-| **Testing** | pytest | Application / routing / preprocessing regression |
-| **Quality** | Ruff | Static checks |
-| **CI** | GitHub Actions | Python 3.11 / 3.12 validation |
-| **Runtime** | Docker · Dev Container | Reproducible development environment |
+| 구분 | 기술 | 사용 목적 |
+|---|---|---|
+| 공간 분석 | QGIS | 공간 데이터 전처리·검수 및 레이어 관리 |
+| 지리공간 처리 | GeoPandas | 좌표계 변환 및 공간 데이터 가공 |
+| 기하 연산 | Shapely | 건물 형상 이동·합집합 및 공간 교차 분석 |
+| 태양 위치 계산 | Pysolar | 시간대별 태양 고도·방위각 계산 |
+| 좌표 변환 | PyProj | WGS84와 투영 좌표계 간 변환 |
+| 그래프 탐색 | NetworkX | 보행 최단경로 및 가중치 기반 대안 경로 탐색 |
+| 공간 인덱싱 | SciPy KDTree | 장소 검색 좌표와 도로 노드 매칭 |
+| 데이터 처리 | Pandas | 링크·시간대별 그늘 통계 관리 |
+| 기상 데이터 | Open-Meteo | 시간대별 기온·강수량·습도 조회 |
+| 장소 검색 | Kakao Local API | 출발지·도착지 검색 |
+| 웹 애플리케이션 | Streamlit | 인터랙티브 경로 탐색 PoC |
+| 지도 시각화 | Folium | 경로 및 공간정보 시각화 |
+| 차트 시각화 | Altair | 시간대별 기상 정보 시각화 |
+| 테스트 | pytest | 경로 탐색·전처리·서비스 동작 검증 |
+| 정적 검사 | Ruff | Python 코드 정적 검사 |
+| CI | GitHub Actions | Python 3.11·3.12 자동 검증 |
+| 실행 환경 | Docker · Dev Container | 개발 환경 구성 및 실행 재현성 확보 |
 
 ---
 
@@ -927,13 +954,41 @@ Portable project는 repository-relative path와 `EPSG:5179` 기준으로 구성�
 | [`QGIS Usage`](docs/qgis/usage.md) | Portable QGIS project 실행 방법 |
 | [`Data Guide`](data/README.md) | 데이터 구성과 사용 범위 |
 
-### Data & References
 
-- **공간·인구 데이터:** 서울 열린데이터광장, 공공데이터포털
-- **기상 데이터:** 기상자료개방포털, Open-Meteo
-- **Reference:** Melnikov et al., *Scientific Reports* (2022)
+### Data Provenance
 
-> 데이터와 이미지에는 각 원천 자료의 이용 조건이 적용됩니다.
+**원천 데이터 수집일: 2026.01.05**
+
+Cooling Path는 서울시 및 공공기관에서 제공하는 보행 네트워크, 건물 공간정보, 행정경계, 그늘막, 기상 데이터를 수집하여 폭염 대응 보행 경로 탐색 PoC를 기획했습니다.
+
+실제 경로 탐색에 사용하는 데이터와 초기 기획·공간 분석에 활용한 자료를 구분하여 정리했습니다.
+
+| 데이터셋 | 제공처 | 활용 목적 | 현재 저장소 및 구현 범위 |
+|---|---|---|---|
+| [서울시 자치구별 도보 네트워크 공간정보](https://data.seoul.go.kr/dataList/OA-21208/S/1/datasetView.do) | 서울 열린데이터광장 | 보행 도로의 Node·Link를 이용한 최단거리 및 대안 경로 탐색 | `data/raw/seoul_people_roads.csv`, `data/processed/non_buffered_roads.*` |
+| [서울특별시 강남구_그늘막](https://www.data.go.kr/data/15143202/fileData.do) | 공공데이터포털 · 강남구 | 고정형 그늘막의 공간적 위치 파악 및 지도 시각화 | `data/processed/gangnamgu_shade_shelters.csv` — 지도 마커로 활용 |
+| [GIS건물통합정보-서울특별시](https://www.vworld.kr/dtmk/dtmk_ntads_s002.do?svcCde=NA&dsId=18) | VWorld 공간정보 오픈플랫폼 | 건물 외곽·높이 정보를 활용한 시간대별 건물 그림자 생성 | `data/processed/processed_buildings.*` — 높이 보정 등이 반영된 가공 자료 |
+| [행정경계(시군구)](https://www.vworld.kr/dtmk/dtmk_ntads_s002.do?svcCde=MK&dsId=30252) | VWorld 공간정보 오픈플랫폼 | 강남구 분석 영역 설정 및 공간 데이터 클리핑 | 현장실습 당시 QGIS 전처리에 활용. 원본 경계 SHP는 현재 미포함 |
+| [방재기상관측(AWS)](https://data.kma.go.kr/data/grnd/selectAwsRltmList.do?pgmNo=56) | 기상자료개방포털 · 기상청 | 기온 관측자료를 통한 폭염 상황 분석 및 시각화 기획 | 초기 분석용 자료. 원본 관측 CSV는 현재 미포함 |
+
+#### Runtime Data & Derived Data
+
+현재 애플리케이션은 수집·가공한 공간정보 외에도 다음 데이터를 사용합니다.
+
+| 데이터 | 생성·제공 방식 | 사용 목적 |
+|---|---|---|
+| 시간대별 태양 위치 | Pysolar 기반 계산 | 건물 그림자 방향·길이 계산 |
+| 건물 그림자 형상 | 건물 Polygon·높이·태양 위치를 이용한 Shadow Ghosting | 그림자와 보행 도로의 공간 교차 분석 |
+| 링크별 그늘 비율 | 그림자와 도로 버퍼의 교차 면적 집계 | 시간대별 경로 비용 및 그늘 KPI 계산 |
+| 실시간 기상정보 | [Open-Meteo API](https://open-meteo.com/) | 기온·강수량·상대습도 조회 및 경로 비교 |
+| 폭염·강수 Demo | 코드에 정의된 시나리오 | 실제 기상 API 없이 폭염·강수 상황 시연 |
+| 장소 검색 | [Kakao Local API](https://developers.kakao.com/docs/latest/ko/local/dev-guide) | 출발지·목적지 좌표 검색 및 보행 네트워크 연결 |
+
+**원천 데이터 수집일(2026.01.05)**과 **그림자 시뮬레이션 기준일(2025.07.08)**은 서로 다릅니다. 현재 저장된 링크별 그늘 비율은 2025년 7월 8일 08~19시의 태양 위치 시나리오를 기반으로 산출됐으며, 실시간 기상정보를 조회하더라도 현재 날짜의 그림자를 새로 계산하지는 않습니다.
+
+원천 데이터의 일부는 QGIS에서 클리핑·좌표계 변환·속성 보정을 거친 뒤 가공 파일 형태로 보존했습니다. 원본 행정경계, AWS 관측 CSV 등은 현재 공개 저장소에 포함되어 있지 않으므로, 모든 원천 데이터의 수집 단계부터 완전하게 재현할 수 있다고 주장하지 않습니다.
+
+데이터 이용·재배포에는 각 제공기관의 이용 조건이 적용됩니다. 자세한 파일 구성과 전처리 절차는 [Data Guide](data/README.md) 및 [QGIS Workflow](docs/qgis-workflow.md)를 참고하세요.
 
 ---
 
@@ -950,6 +1005,9 @@ Cooling Path는 **시뮬레이션 기반 PoC**이며 실제 내비게이션 서�
 - KDTree nearest-node matching은 실제 출입구나 도로 횡단 가능성을 완전하게 반영하지 않습니다.
 - Simple Graph를 사용하므로 Parallel Road Link는 명시적인 대표 Edge 정책으로 처리합니다.
 - Simulation 결과는 단일 경로 사례이며 일반적인 성능 향상을 의미하지 않습니다.
+- 저장된 그림자 비율은 **2025년 7월 8일의 태양 위치**를 기준으로 계산한 시나리오입니다. 실시간 기상 데이터를 선택하더라도 현재 날짜의 실제 그림자를 다시 계산하는 것은 아닙니다.
+- 현재 구현은 강수량이 0보다 크면 경로 비용 계산에서 그늘 비율을 0으로 설정합니다. 이는 우천 시 그늘 확보보다 다른 보행 조건을 고려하도록 한 단순화된 규칙이며, 실제 그림자가 사라진다는 의미는 아닙니다.
+
 
 이 한계들은 결과를 과장하지 않고, 향후 개선 범위를 명확하게 정의하기 위해 문서화했습니다.
 
@@ -957,37 +1015,28 @@ Cooling Path는 **시뮬레이션 기반 PoC**이며 실제 내비게이션 서�
 
 ## 📄 License & Usage
 
-This repository is published for **portfolio and technical review purposes**.
+이 저장소는 **포트폴리오 및 기술 검토 목적**으로 공개되어 있습니다.
 
-The project was originally developed during an internship at **Dtonic** and
-includes work created in that context. Therefore, this repository is **not
-currently distributed under an open-source license**.
+Cooling Path는 디토닉 현장실습 과정에서 개발한 PoC를 기반으로 하며, 당시 업무 환경에서 생성된 코드와 산출물이 포함되어 있습니다. 따라서 현재 별도의 오픈소스 라이선스를 부여하지 않습니다.
 
-Unless otherwise explicitly stated, no permission is granted by this
-repository to reproduce, modify, redistribute, or commercially use the source
-code, project assets, or documentation.
+저장소를 공개했다는 사실만으로 소스코드, 이미지, 데이터 및 문서에 대한 사용·수정·재배포·상업적 이용 권한이 부여되는 것은 아닙니다.
 
-Third-party datasets, APIs, libraries, and other external resources remain
-subject to their respective licenses and terms of use.
-
-For questions regarding reuse or licensing, please contact the repository owner.
+외부 데이터셋, API, 라이브러리 및 이미지에는 각 원 저작권자와 제공자의 이용 조건이 적용됩니다. 현장실습 계약이나 제3자의 권리·이용 제한이 있는 경우 해당 조건이 우선합니다.
 
 ---
+
 
 <div align="center">
 
 ### Cooling Path 🐈‍⬛
 
-**The shortest walk is not always the coolest one.**
+**최적 경로의 기준을 넓히다. 거리와 편의성에서, 그늘까지.**
 
-보행 가능한 최단거리 위에  
-**공간 데이터와 열 노출 비용이라는 새로운 기준을 더했습니다.**
+_기존의 거리·편의성 중심 보행 경로 탐색에 시간대별 건물 그림자와 보행 환경을 반영하여, 폭염 상황에서의 새로운 경로 선택 기준을 제시했습니다._
 
 </div>
 
 ---
-
-
 
 > 본 저장소는 포트폴리오 및 기술 검토 목적으로 공개되어 있습니다.
 > 본 프로젝트는 디토닉 현장실습 과정에서 수행된 작업을 기반으로 하므로,
