@@ -1,35 +1,34 @@
-# 레이어 목록과 정리 내역
+# QGIS Layer Inventory
 
-정리본은 네 레이어만 사용합니다. 프로젝트 CRS와 모든 레이어 CRS는 EPSG:5179입니다.
-원본 QGZ의 프로젝트 CRS(EPSG:5186)를 그대로 유지한 것이 아니라 분석 레이어에
-맞춰 명시적으로 정리했습니다. 각 입력 형상의 좌표를 무조건 새 CRS로 간주한 것은 아닙니다.
+공개 QGIS 프로젝트와 네 레이어의 좌표계는 `EPSG:5179`입니다. 파일 경로는 [`CoolingPath_QGIS.qgz`](CoolingPath_QGIS.qgz)의 위치를 기준으로 표시합니다.
 
-| 표시 이름 | 프로젝트 기준 상대경로 | 피처 수 | 용도 |
+| QGIS 표시 이름 | 데이터 경로·테이블 | 피처 수 | 용도 |
 | --- | --- | ---: | --- |
-| Walking links · shade at 14:00 | `./CoolingPath_showcase.gpkg`, `roads_shade_20250708_1400` | 971 | 기존 그늘 통계를 조인한 보행 도로 |
-| Buildings | `../../data/processed/processed_buildings.shp` | 1,392 | 건물 입력 |
-| Shadows · 14:00 KST | `./CoolingPath_showcase.gpkg`, `shadows_20250708_1400` | 1,392 | 재현 스크립트로 생성한 14시 그림자 |
-| Road buffers · 2 m | `../../data/processed/processed_roads.shp` | 971 | 면적 교차 분석용 도로 버퍼 |
+| Walking links &#124; shade at 14:00 | `./CoolingPath_showcase.gpkg` · `roads_shade_20250708_1400` | 971 | 공개 CSV의 14:00 그늘 비율을 입힌 보행 도로 |
+| `Buildings` | `../../data/processed/processed_buildings.shp` | 1,392 | 건물 형상과 높이 |
+| Shadows &#124; 14:00 KST | `./CoolingPath_showcase.gpkg` · `shadows_20250708_1400` | 1,392 | 공개 전처리 코드로 생성한 14:00 건물 그림자 |
+| Road buffers &#124; 2 m | `../../data/processed/processed_roads.shp` | 971 | 그림자 교차 면적 계산에 사용한 2m 도로 버퍼 |
 
-## 제공된 원본 24개 레이어의 처리
+GeoPackage에는 보행 도로와 14:00 그림자가 들어 있습니다. 건물과 도로 버퍼는 저장소의 Shapefile을 참조합니다. GeoPackage에는 레이어 표시에 필요한 ID, 길이, 시간, 그늘 비율 등의 속성을 사용합니다.
 
-| 원본 레이어 | 처리·이유 |
+## Internship Data Lineage
+
+현장실습 QGIS 프로젝트에는 24개 레이어가 기록되어 있으며 프로젝트 CRS는 `EPSG:5186`이었습니다. 공개 프로젝트는 아래 자료에서 분석에 필요한 형상과 통계를 연결합니다.
+
+| 현장실습 레이어 | 공개 프로젝트에서의 대응 |
 | --- | --- |
-| `processed_buildings`, `processed_buildings2` | 동일 입력 중복을 하나의 Buildings 레이어로 정리 |
-| `processed_roads` | 저장소의 실제 가공 SHP를 상대경로로 연결 |
-| `non_buffered_roads2` | 외부 파일을 추측 연결하지 않고 저장소 `non_buffered_roads.shp`에서 색칠용 도로를 재생성 |
-| `processed_shadows` | 누락된 SHP를 추측 복원하지 않고 Notebook 기반 재현 그림자로 대체 |
-| `Roads_Teheran_5179` | 건물 파일을 참조하는 이름 불일치와 외부 경로 때문에 제외 |
-| `Shadow_KT_Fixed_5179`, `Buildings_Teheran_5179` | 외부 수동 편집 파일의 출처·재현 상태를 확정할 수 없어 제외 |
-| `Roads_Buffered_2m`, `Roads_Clean_5179` | 외부 중간 산출물 대신 저장소의 가공 도로 사용 |
-| `Roads_Buffered` | CRS 선언이 빈 외부 CSV로, 검증된 입력으로 대체 |
-| `Roads_Shadow_Parts`, `Roads_Shadowed_Only` | 외부 중간 교차 결과라 제외; 전처리 스크립트로 집계 과정 제공 |
-| `Shadow_2026_0708_1400`, `Shadow_Real_2026` | 2025-07-08 시나리오와 이름·날짜가 다르고 외부 참조이므로 제외 |
-| `Teheran_Block_Buildings`, `Teheran_Roads_Network` | 외부 원천·중간 레이어로, 공개 가공 데이터로 범위 제한 |
-| `AL_D010_11_20260104`, `BND_SIGUNGU_PG`, `fixed_AL_D010`, `gangnam_str`, `gangnamgu` | 저장소에 없는 원천·행정경계·보정 파일은 추가 공개하지 않음 |
-| `서울시 자치구별 도보 네트워크 공간정보` | 외부 원천 CSV 대신 가공된 보행 네트워크 사용 |
-| `OpenStreetMap` | 외부 요청 없이 열리도록 온라인 배경지도 제외 |
+| `processed_buildings`, `processed_buildings2` | 같은 건물 데이터를 `Buildings` 레이어로 표시 |
+| `processed_roads` | 공개 가공 도로를 `Road buffers` 레이어로 표시 |
+| `non_buffered_roads2` | 공개 선형 도로와 링크별 그늘 CSV로 `Walking links` 레이어 생성 |
+| `processed_shadows` | 공개 가공 건물과 태양 위치로 14:00 `Shadows` 레이어 생성 |
+| `Roads_Teheran_5179` | 이름과 달리 건물 파일을 참조한 원본 레이어로, 공개 범위에서 제외 |
+| `Shadow_KT_Fixed_5179`, `Buildings_Teheran_5179` | 현장실습 당시 수동 편집 자료로, 공개 범위에서 제외 |
+| `Roads_Buffered_2m`, `Roads_Clean_5179`, `Roads_Buffered` | 중간 도로 자료 대신 좌표계가 정의된 공개 도로 버퍼 사용. 당시 `Roads_Buffered` CSV의 CRS 표기는 비어 있었음 |
+| `Roads_Shadow_Parts`, `Roads_Shadowed_Only` | 중간 교차 자료. 동일한 데이터 유형은 [전처리 절차](../qgis-workflow.md)에서 생성 |
+| `Shadow_2026_0708_1400`, `Shadow_Real_2026` | 명칭과 날짜가 공개 2025년 시나리오와 다른 외부 참조로, 공개 범위에서 제외 |
+| `Teheran_Block_Buildings`, `Teheran_Roads_Network` | 외부 건물·도로 자료로, 공개 가공 레이어의 범위와 구분 |
+| `AL_D010_11_20260104`, `BND_SIGUNGU_PG`, `fixed_AL_D010`, `gangnam_str`, `gangnamgu` | 원천·행정경계·보정 자료로, 공개 레이어에 포함되지 않음 |
+| `서울시 자치구별 도보 네트워크 공간정보` | 가공된 보행 네트워크 사용 |
+| `OpenStreetMap` | 오프라인 프로젝트의 공개 레이어에 포함되지 않음 |
 
-새 GeoPackage는 기존에 공개된 형상에서 파생됐으며 API 키, 로컬 계정 경로,
-원본 Notebook 출력 또는 QGIS 인증 설정을 복사하지 않습니다. 원본 QGZ 자체는
-공개 파일에 포함하지 않았습니다.
+원천과 가공 데이터의 출처 및 이용 조건은 [Data Provenance](../../data/README.md#data-provenance)를 참고하세요.

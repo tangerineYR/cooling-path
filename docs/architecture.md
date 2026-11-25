@@ -1,30 +1,31 @@
 # Architecture
 
-`app.py`는 Streamlit 진입점이며 `src/coolingpath/ui/app.py`가 화면과 사용자 흐름을 구성합니다.
+[`app.py`](../app.py)는 Streamlit 진입점입니다. [`src/coolingpath/ui/app.py`](../src/coolingpath/ui/app.py)가 출발지·도착지 입력부터 경로 지도와 비교 지표 출력까지 연결합니다.
 
 | 모듈 | 책임 |
 | --- | --- |
-| `config.py` | 저장소 기준 경로·페르소나·색상 설정 |
-| `data.py` | 도로·그늘 통계·그늘막 로딩 |
-| `services.py` | Kakao 장소 검색·Open-Meteo·Demo 기상 |
-| `routing.py` | 노드 인덱스·그래프·비용·제약 경로 탐색 |
-| `metrics.py` | 길이 가중 그늘 비율·시간·KPI·등급 |
-| `ui/components.py` | 지도·카드·캐릭터 렌더링 |
+| [`config.py`](../src/coolingpath/config.py) | 데이터 경로, 화면 설정, 캐릭터 정보 |
+| [`data.py`](../src/coolingpath/data.py) | 선형 도로, 시간대별 그늘 통계, 그늘막 데이터 로딩 |
+| [`services.py`](../src/coolingpath/services.py) | Kakao 장소 검색, Open-Meteo 기상 조회, 폭염·강수 데모 |
+| [`routing.py`](../src/coolingpath/routing.py) | 최근접 노드 연결, 도로 그래프 구성, 경로 비용과 탐색 |
+| [`metrics.py`](../src/coolingpath/metrics.py) | 거리·예상 시간·그늘 비율·그늘 보정 온도·경로 등급 계산 |
+| [`ui/components.py`](../src/coolingpath/ui/components.py) | 경로 지도와 지표 카드, 캐릭터 표시 |
 
-전처리 단계에서 생성된 그늘 통계를 실행 시 도로 그래프에 결합합니다. 탐색 그래프에도 도로 형상은 포함됩니다. 분리 대상은 그림자 Polygon이며, 모든 형상 정보를 제거한 그래프는 아닙니다.
+## Data Flow
 
-기존 `docs/diagrams/`의 Mermaid 원문과 `docs/assets/CoolingPath_*` 이미지는 인턴 당시 설계 기록입니다. 시간 +14% 필터 등 과거 기획은 현재 구현과 차이가 있습니다. 현재 일반 쿨링 경로는 가중 최단 경로, 개인화 경로는 거리 제한 내 후보 탐색을 사용합니다.
+[사전 공간 연산](qgis-workflow.md)에서 그림자 다각형과 도로 버퍼를 교차해 링크·시간대별 그늘 비율을 계산합니다. 앱은 선형 도로의 노드와 링크로 그래프를 만들고, 공개 CSV의 `shadow_ratio`를 링크 ID와 시간대로 결합합니다. 그래프의 도로 선형 형상은 지도 렌더링에 사용합니다. 장소 검색 좌표는 `EPSG:5179`로 변환한 후 KDTree로 최근접 도로 노드에 연결합니다.
 
-## 현재 경로 기준과 평행 도로 정책
+경로 선은 보행 그래프의 도로 형상에서 가져오고, Folium은 브라우저에서 OpenStreetMap 타일을 배경으로 불러옵니다. Kakao Local API는 출발지와 도착지의 장소 검색에 사용합니다.
 
-최단경로는 시설·강수 페널티 없이 `length`(보행 네트워크 거리)로 계산합니다.
-개인화 우회율의 기준도 이 경로입니다. 기존 페널티 비용은 `cost_walkability`로
-이름을 구분하며 현재 UI의 최단경로에는 사용하지 않습니다.
+## Routing Policy
 
-단순 그래프와 `shortest_simple_paths`를 유지하기 위해 같은 무방향 노드 쌍의
-링크는 길이가 가장 짧은 것을 선택합니다. 동률은 문자열로 변환한 `link_id`의
-사전식 순서로 결정하므로 입력 행 순서에 의존하지 않습니다. 제외된 링크와
-대표 링크는 `G.graph["omitted_parallel_links"]`에 기록하고 빌드 시 경고합니다.
-UI에도 제한을 표시합니다. 이는 거리 최단값을 보존하지만, 제외된 링크의 그늘·시설
-대안까지 보존하는 MultiGraph 구현은 아닙니다. 쿨링·개인화 최적화는 대표 링크로
-구성된 그래프 안에서 수행하며, 개인화 후보 탐색은 최대 30개로 제한됩니다.
+| 경로 | 선택 기준 |
+| --- | --- |
+| 최단 경로 | 도로 길이 `length`의 합을 최소화합니다. |
+| 쿨링 경로 | 거리, 그늘 부족, 시설과 강수 조건을 반영한 `cost_cooling`의 합을 최소화합니다. |
+| 대로 우선 경로 | 거리와 시설 조건으로 대로를 근사한 `cost_main`을 사용합니다. |
+| 개인화 경로 | 사용자가 정한 최단거리 대비 우회율 안에서 `cost_personal`을 비교합니다. 비용순으로 최대 30개 후보를 확인하고 조건을 만족하는 후보가 없으면 최단 경로를 반환합니다. |
+
+단순 무방향 그래프에서 같은 두 노드를 연결하는 링크가 여럿이면 가장 짧은 링크를 남깁니다. 길이가 같으면 문자열 `link_id` 순서로 결정합니다. 제외 링크는 `G.graph["omitted_parallel_links"]`에 남고, 앱 화면에도 이 제한을 표시합니다. 경로 최적화는 남아 있는 링크를 대상으로 수행합니다. `cost_walkability`는 보행 시설과 강수량을 반영하는 별도 비용이며 최단거리 계산은 `length`를 사용합니다.
+
+[흐름도](diagrams/flowchart.mmd)와 [ERD](diagrams/erd.mmd)는 현장실습 당시의 설계 자료입니다. 흐름도의 예상 이동 시간 +14% 필터는 [당시 시뮬레이션](evaluation.md#internship-route-comparison)에 해당합니다. 현재 개인화 경로의 제약 기준은 거리입니다.

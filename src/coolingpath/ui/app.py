@@ -360,13 +360,7 @@ def main():
                 render_route_legend(
                     show_personal=st.session_state.get("use_personal_mode", False)
                 )
-            m = folium.Map(location=center, zoom_start=16.5)
-            folium.TileLayer(
-                tiles="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-                attr="CARTO",
-                name="Gray",
-                control=False,
-            ).add_to(m)
+            m = folium.Map(location=center, zoom_start=16.5, tiles="OpenStreetMap")
             if view_mode == "🔍 모든 경로 비교":
                 draw_path_layer(
                     m,

@@ -1,87 +1,67 @@
-# QGIS와 Python 전처리 작업 기록
+# QGIS & Shadow Preprocessing
 
-## 근거와 범위
+강남구 역삼–선릉 일대의 건물과 도로를 바탕으로 시간대별 건물 그림자를 생성하고, 보행 링크별 그늘 비율을 집계합니다. 공개 파이프라인의 입력은 가공 건물과 도로 버퍼입니다.
 
-기존 프로젝트 산출물인 `CoolingPath_shadow.ipynb`와
-`QGIS_project.qgz`를 기준으로 전처리 과정을 검증했습니다. QGZ의 `0112_project.qgs`에는 24개 레이어가 있으며
-프로젝트 CRS는 **EPSG:5186**입니다. 이는 분석에 사용한 주요 건물·도로·그림자
-레이어의 **EPSG:5179**와 구분해야 합니다. 원천 자료에는 EPSG:4326·5186,
-OSM 배경지도에는 EPSG:3857이 사용됩니다.
+## Spatial Inputs
 
-QGIS 프로젝트는 레이어 구성·스타일·참조 경로의 증거입니다. 정확한 Processing
-명령 순서나 전체 그림자 Dissolve 수행 여부를 확정하는 실행 기록은 아닙니다.
-Notebook에서 직접 확인되는 Python 작업은 다음과 같습니다.
+QGIS에서는 분석 영역을 정하고 건물과 도로를 정제했습니다. 건물 높이가 빠졌거나 0인 구간은 층수 기반 추정과 일부 건물의 수동 보정으로 보완했습니다. 보행 도로는 면적 교차에 사용할 수 있도록 선형 형상 양쪽에 2m 버퍼를 적용했습니다. [데이터 파일과 공개 범위](../data/README.md)
 
-1. 강남구 좌표(37.5026, 127.0427), 2025-07-08 08–19시 KST의 태양 위치 계산.
-2. 건물을 EPSG:5179로 재투영하고 0.3m로 단순화.
-3. `height / tan(태양 고도)` 길이만큼 태양 반대 방향으로 이동한 형상을
-   7단계(원본을 포함한 8개 위치)로 합집합하는 건물별 Shadow Ghosting.
-4. 시간대별 그림자와 도로 버퍼를 교차하고 링크별 교차 면적을 합산.
-   도로 면적으로 나눈 값을 최대 1로 제한하여 CSV 저장.
+현장실습 QGIS 프로젝트의 당시 기록에는 레이어 24개와 프로젝트 CRS `EPSG:5186`이 남아 있습니다. 거리·면적 계산에 사용한 주요 분석 레이어와 현재 [공개 QGIS 프로젝트](qgis/usage.md)는 `EPSG:5179`를 사용합니다. 당시 자료에는 `EPSG:4326`·`EPSG:5186` 원천 레이어와 `EPSG:3857`의 OSM 배경지도가 함께 있었습니다. 자세한 레이어 구성은 [QGIS Layer Inventory](qgis/layer-inventory.md)에 정리했습니다.
 
-도로 버퍼링·건물 높이 보정 등 QGIS 단계의 상세 알고리즘과 수동 편집 이력은
-제공 자료만으로 완전히 복원할 수 없습니다. 저장소의 가공된 SHP를 파이프라인
-입력으로 사용합니다. 전체 도시 원천자료부터의 재현을 주장하지 않습니다.
+현장실습 자료에는 QGIS 도구의 전체 실행 순서와 개별 수동 편집 내역이 기록되어 있지 않습니다. 재현 절차는 저장소에 있는 가공 SHP부터 시작합니다.
 
-## 재현 가능한 실행 경로
+## Shadow Pipeline
 
-저장소 루트에서 Python 3.11 이상으로 실행합니다. 앱 실행에는 Pysolar가 필요하지
-않으므로 별도 extra에만 선언했습니다. 아래 명령은 외부 API를 호출하지 않습니다.
-의존성 설치에는 패키지 레지스트리 접근이 필요합니다.
+1. 강남구 기준 좌표(위도 37.5026°, 경도 127.0427°)에서 2025년 7월 8일 08:00–19:00 KST의 태양 고도와 방위각을 계산합니다.
+2. 건물 형상을 `EPSG:5179`로 변환하고 허용 오차 0.3m로 단순화합니다.
+3. 건물 높이와 태양 고도로 이동 거리를 계산합니다. 태양 반대 방향을 따라 원래 위치를 포함한 8개 형상을 합집합해 건물별 그림자를 근사합니다.
+4. 시간대별 그림자와 보행 도로 버퍼가 겹치는 부분을 계산합니다. 링크별 그늘 면적을 도로 버퍼 면적으로 나눠 `shadow_ratio`를 0–1 범위로 저장합니다.
 
-```bash
-python -m pip install -e '.[dev,preprocessing]'
+[`shadow_generation.ipynb`](../notebooks/shadow_generation.ipynb)는 현장실습 당시 그림자 전처리 셀을 보존한 기록입니다. 당시 Colab 경로를 사용하므로, 공개 데이터로 실행할 때는 아래 명령을 사용하세요.
+
+## Reproduce the Preprocessing
+
+저장소 루트에서 Python 3.11 이상으로 실행합니다. `preprocessing` 추가 의존성은 태양 위치 계산에 필요한 Pysolar를 설치합니다. 패키지 설치 후 세 명령은 외부 API 없이 실행됩니다. 아래는 Bash 예시입니다.
+
+~~~bash
+python -m pip install -e ".[preprocessing]"
+
 python -m scripts.preprocessing.generate_solar_scenarios \
   --date 2025-07-08 --output /tmp/coolingpath-run/solar.csv
+
 python -m scripts.preprocessing.generate_shadows \
   --buildings data/processed/processed_buildings.shp \
   --solar /tmp/coolingpath-run/solar.csv \
   --output /tmp/coolingpath-run/shadows.gpkg
+
 python -m scripts.preprocessing.aggregate_shadow_by_link \
   --roads data/processed/processed_roads.shp \
   --shadows /tmp/coolingpath-run/shadows.gpkg \
   --overlap-policy union --output /tmp/coolingpath-run/links.csv
-python -m pytest -q
-```
+~~~
 
-출력 파일이 이미 있으면 덮어쓰지 않고 실패합니다. 재실행에는 새로운 출력 경로를
-지정하세요. 기존 가공 CSV·SHP는 자동으로 바꾸지 않습니다. 높이 필드는
-`--height-column`, 잔상 단계는 `--steps`, 단순화 허용치는 `--simplify`로 지정합니다.
-CRS가 없거나 형상이 유효하지 않으면 임의 추정·자동 보정하지 않고 오류를 냅니다.
+출력 파일이 이미 있으면 스크립트가 중단됩니다. 다시 실행할 때는 새 출력 경로를 지정하세요. 생성된 결과는 원본 SHP와 앱용 CSV와 별도로 저장됩니다. `--height-column`, `--steps`, `--simplify`로 높이 열, 이동 구간 수, 단순화 허용 오차를 바꿀 수 있습니다. 입력 다각형은 유효한 형상과 CRS를 갖춰야 합니다.
 
-집계 기본값 `union`은 도로별 교차 형상을 합집합하여 건물 간 그림자 중복 면적을
-제거합니다. `--overlap-policy legacy-sum`은 Notebook의 면적 합산·상한 제한을
-재현합니다. 이 차이는 의도된 수정이며, 기본값으로 생성한 CSV가 기존 통계와
-같다고 주장하지 않습니다. Ghosting은 연속적인 투영이 아닌 이산 근사이므로
-태양 고도가 낮거나 건물 폭에 비해 이동 간격이 크면 그림자에 틈이 생길 수 있습니다.
-단계를 늘려 민감도를 확인해야 합니다. 현장 정확도 검증은 별도입니다.
+### Overlap Policies
 
-`notebooks/shadow_generation.ipynb`는 제공된 Notebook의 첫 9개 전처리 셀만
-발췌한 **역사적 실험 기록**입니다. 출력·Colab 메타데이터는 제거했고 원본 경로는
-보존했습니다. 뒤의 경로 실험·자동 생성된 작업 지시·지도 HTML 출력은 포함하지
-않았습니다. Notebook 전체를 실행하는 방식 대신 위 스크립트를 사용하세요.
+| 정책 | 집계 방식 |
+| --- | --- |
+| `union` | 같은 시간대에 도로와 교차하는 건물 그림자를 합집합한 후 면적을 계산합니다. 여러 건물의 그림자가 겹친 부분은 한 번 집계합니다. |
+| `legacy-sum` | 현장실습 노트북과 같이 건물별 교차 면적을 합산하고 비율을 최대 1로 제한합니다. 상한 적용 뒤에도 중복 면적의 영향이 남을 수 있습니다. |
 
-## 원본 QGIS 프로젝트와 공개 정리본
+공개 CSV와 비교하려면 `legacy-sum` 정책으로 별도 파일을 생성합니다.
 
-- `../../../Documents/`, `../../../processing/`의 외부 참조가 남아 있습니다.
-- `processed_buildings`와 `processed_buildings2`는 같은 SHP를 참조합니다.
-- `Roads_Teheran_5179`의 원본 경로는 `Building_Teheran_5179.shp`여서 이름과
-  파일 역할이 일치하지 않습니다.
-- `processed_shadows.shp` 등 저장소에 없는 파일이 참조됩니다.
-- `Roads_Buffered` CSV 레이어는 CRS 선언이 비어 있습니다.
+~~~bash
+python -m scripts.preprocessing.aggregate_shadow_by_link \
+  --roads data/processed/processed_roads.shp \
+  --shadows /tmp/coolingpath-run/shadows.gpkg \
+  --overlap-policy legacy-sum --output /tmp/coolingpath-run/legacy-links.csv
+~~~
 
-원본 QGZ는 그대로 게시하지 않았습니다. 대신 저장소 입력을 기반으로 중복·외부
-레이어를 제거한 [공개용 정리본](qgis/usage.md)을 추가했습니다. 네 레이어의
-참조 경로를 상대경로로 만들고 프로젝트 CRS를 분석 레이어와 같은 EPSG:5179로
-정리했습니다. 원본 프로젝트 전체의 복원본은 아닙니다. 실제 QGIS에서 재개방한
-프로젝트, QGIS가 렌더링한 이미지와 [레이어별 처리 내역](qgis/layer-inventory.md)을
-함께 제공합니다.
+앱과 공개 QGIS 프로젝트의 보행 도로 색상은 저장소의 [`hourly_link_stat_20250708.csv`](../data/processed/hourly_link_stat_20250708.csv)를 사용합니다. 이 CSV는 현장실습 방식으로 집계한 결과입니다.
 
-## 실행 검증
+## Reproduction Checks
 
-제공된 가공 데이터(건물 1,392개, 도로 971개)로 위 세 명령을 모두 실행했습니다.
-12시간의 그림자 16,704개와 링크·시간대 통계 11,652개를 생성했습니다.
-`legacy-sum` 결과와 저장소의 기존 통계는 최대 절대 오차 약 `1.12e-15`로
-부동소수점 정밀도 내에서 일치했습니다. `union`은 2,626개 링크·시간대 행에서
-중복 집계 면적을 줄였습니다(차이 `1e-6` 초과 기준). 이 검증은 현재 가공 데이터와
-알고리즘 재현에 대한 것이며 실제 현장 그림자의 정확도 검증은 아닙니다.
+공개 가공 데이터의 전처리 기록에는 건물 1,392개, 시간대별 그림자 16,704개, 도로 971개와 12시간에 대한 통계 11,652행이 남아 있습니다. 공개 CSV와 `legacy-sum` 결과의 최대 절대 오차는 약 `1.12e-15`였습니다. `union`의 그늘 비율은 `legacy-sum`보다 2,626개 링크·시간대에서 낮았습니다(차이 `1e-6` 초과 기준).
+
+이 비교는 가공 데이터에서의 집계 재현성을 다룹니다. 건물 그림자를 유한한 간격으로 근사하므로 태양 고도가 낮거나 건물 폭에 비해 이동 간격이 크면 그림자 사이에 틈이 생길 수 있습니다. 현장 그림자 형상과의 오차는 측정하지 않았습니다. 자동화 테스트 설치·실행은 [Tests & CI](../README.md#tests--ci)를 참고하세요.
