@@ -10,11 +10,15 @@
 
 **태·피·소 — 까망이의 태양 피하기 소동**
 
+[![Python checks](https://github.com/tangerineYR/cooling-path/actions/workflows/ci.yml/badge.svg)](https://github.com/tangerineYR/cooling-path/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![QGIS](https://img.shields.io/badge/QGIS-Spatial_Analysis-589632?logo=qgis&logoColor=white)](https://qgis.org/)
+![GeoPandas](https://img.shields.io/badge/GeoPandas-Vector_Geodata-139C5A)
+
+![Pysolar](https://img.shields.io/badge/Pysolar-Sun_Position-B36B00)
 [![NetworkX](https://img.shields.io/badge/NetworkX-Routing-444444)](https://networkx.org/)
+![Folium](https://img.shields.io/badge/Folium-Route_Maps-2B8C67)
 [![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![Python checks](https://github.com/tangerineYR/cooling-path/actions/workflows/ci.yml/badge.svg)](https://github.com/tangerineYR/cooling-path/actions/workflows/ci.yml)
 
 <img src="docs/assets/route-comparison-demo.png" width="850" alt="폭염 데모의 경로 지도와 최단·쿨링·큰길 우선·개인화 경로 범례" />
 
